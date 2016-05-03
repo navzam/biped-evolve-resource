@@ -19,4 +19,5 @@ file(GLOB SOURCES ${SRC_DIR}/*.cpp)
 
 # Create executable
 add_executable(biped-evolve-resource ${SOURCES} ${INCLUDES})
+target_compile_features(biped-evolve-resource PRIVATE cxx_range_for)
 target_link_libraries(biped-evolve-resource ode drawstuff ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})
