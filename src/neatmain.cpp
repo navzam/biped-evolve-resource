@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
   SwitchArg multiobj_switch("","mo","Multiobjective",false);
   cmd.add(multiobj_switch);
  
-  SwitchArg remove_random("","remrand","Remove random individuak",false);
+  SwitchArg remove_random("","remrand","Remove random individual",false);
   cmd.add(remove_random); 
 
   SwitchArg extinction("","extinct","Turn on random extinctions",false);
