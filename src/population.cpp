@@ -1273,6 +1273,7 @@ bool Population::epoch(int generation) {
 
   //Kill off all Organisms marked for death.  The remainder
   //will be allowed to reproduce.
+  const int sizeBeforeKilling = organisms.size();
   int numKilled = 0;
   curorg=organisms.begin();
   while(curorg!=organisms.end()) {
@@ -1301,7 +1302,7 @@ bool Population::epoch(int generation) {
 
   }
   
-  cout << "KILLED " << numKilled << " ORGANISMS" << endl;
+  cout << "KILLED " << numKilled << " ORGANISMS (" << (100.0 * numKilled / sizeBeforeKilling) << "\%)" << endl;
 
   //cout<<"Reproducing"<<endl;
 
@@ -1317,9 +1318,9 @@ bool Population::epoch(int generation) {
   //	(*curspecies)->reproduce(generation,this,sorted_species);
 
 
-  //}    
-
-
+  //}
+  
+  // Reproduce
   curspecies=species.begin();
   int last_id=(*curspecies)->id;
   while(curspecies!=species.end()) {
@@ -1333,7 +1334,7 @@ bool Population::epoch(int generation) {
         curspecies=curspecies2;
       curspecies2++;
     }
-
+      
     //Move to the next on the list
     curspecies++;
 	  
@@ -1342,7 +1343,7 @@ bool Population::epoch(int generation) {
       last_id=(*curspecies)->id;
 
   }
-
+  
   //cout<<"Reproduction Complete"<<endl;
 
 
