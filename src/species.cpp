@@ -802,7 +802,7 @@ bool Species::remove_org(Organism *org) {
       ++curorg;
 
   if (curorg==organisms.end()) {
-    //cout<<"ALERT: Attempt to remove nonexistent Organism from Species"<<endl;
+    cout<<"ALERT: Attempt to remove nonexistent Organism from Species"<<endl;
     return false;
   }
   else {
@@ -813,7 +813,10 @@ bool Species::remove_org(Organism *org) {
 }
 
 Organism *Species::first() {
-  return *(organisms.begin());
+  if(organisms.size() == 0)
+    return NULL;
+  
+  return organisms.front();
 }
 /*
 bool Species::print_to_file(std::ostream &outFile) {
@@ -1010,7 +1013,9 @@ void Species::adjust_fitness() {
     if (age<=10) ((*curorg)->fitness)=((*curorg)->fitness)*NEAT::age_significance; 
 
     //Do not allow negative fitness
-    if (((*curorg)->fitness)<0.0) (*curorg)->fitness=0.0001; 
+    if (((*curorg)->fitness)<0.0) {
+      (*curorg)->fitness=0.0001;
+    }
 
     //Share fitness with the species
     (*curorg)->fitness=((*curorg)->fitness)/(organisms.size());
@@ -1032,10 +1037,11 @@ void Species::adjust_fitness() {
   //Adding 1.0 ensures that at least one will survive
   num_parents=(int) floor((NEAT::survival_thresh*((double) organisms.size()))+1.0);
 	
+  // TODO: NO LONGER DOING THIS; RESOURCES ARE THE NEW LIMITING FACTOR
   //Mark for death those who are ranked too low to be parents
   curorg=organisms.begin();
   (*curorg)->champion=true;  //Mark the champ as such
-  for(count=1;count<=num_parents;count++) {
+  /*for(count=1;count<=num_parents;count++) {
     if (curorg!=organisms.end())
       ++curorg;
   }
@@ -1043,7 +1049,7 @@ void Species::adjust_fitness() {
     (*curorg)->eliminate=true;  //Mark for elimination
     //std::std::cout<<"marked org # "<<(*curorg)->gnome->genome_id<<" fitness = "<<(*curorg)->fitness<<std::std::endl;
     ++curorg;
-  }             
+  }*/
 
 }
 
@@ -1459,7 +1465,6 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
         ((dad->gnome)->genome_id==(mom->gnome)->genome_id)||
           (pop->compatibility(dad,mom)==0.0))
       {
-
         //Do the mutation depending on probabilities of 
         if (randfloat()<FREEZEPROB) new_genome->mutate_gene_freeze();
         //various mutations
@@ -1555,7 +1560,9 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
           //Keep searching for a matching species
           ++curspecies;
           if (curspecies!=(pop->species).end())
+          {
             comporg=(*curspecies)->first();
+          }
         }
         else if (!NEAT::speciation||pop->compatibility(baby,comporg)<NEAT::compat_threshold) {
           //Found compatible species, so add this organism to it
@@ -1566,8 +1573,10 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
         else {
           //Keep searching for a matching species
           ++curspecies;
-          if (curspecies!=(pop->species).end()) 
+          if (curspecies!=(pop->species).end())
+          {
             comporg=(*curspecies)->first();
+          }
         }
       }
 
