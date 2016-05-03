@@ -8,6 +8,9 @@ find_package(OpenGL REQUIRED)
 # Find GLUT
 find_package(GLUT REQUIRED)
 
+# Build in debug mode
+set(CMAKE_BUILD_TYPE Debug)
+
 # Local includes
 set(INCLUDE_DIR include)
 include_directories(${INCLUDE_DIR})
