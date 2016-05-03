@@ -292,10 +292,10 @@ dReal evaluate_controller(Controller* controller, bool &died, noveltyitem* ni,  
       //cout << "Time " << timestep << ": " << creatures[0]->fitness() << endl;
   }
   const dReal fitness = creatures[0]->fitness();
-  if(creatures[0]->abort())
+  /*if(creatures[0]->abort())
     cout << "Creature fell with fitness " << fitness << endl;
   else
-    cout << "Creature timed out with fitness " << fitness << endl;
+    cout << "Creature timed out with fitness " << fitness << endl;*/
   
   const int time = timestep;
 
@@ -324,7 +324,7 @@ dReal evaluate_controller(Controller* controller, bool &died, noveltyitem* ni,  
   dVector3 com;
   creatures[0]->CenterOfMass(com);
   // TODO: Subtract com from the original com?
-  cout << "Attempting to consume from (" << com[0] << ", " << com[1] << ")..." << endl;
+  //cout << "Attempting to consume from (" << com[0] << ", " << com[1] << ")..." << endl;
   const bool enoughFood = ResourceMap::getInstance().consume(com[0], com[1]);
 
   if(record != NULL)
@@ -823,9 +823,10 @@ Population *biped_resource(char *outputDir, const char *genes, const int numGens
   cout << "Evaluating initial population..." << endl;
   popState->pop->evaluate_all();
   cout << "Evaluated initial population" << endl;
+  cout << endl << endl;
   
   // Perform experiment for all generations
-  for(int gen = 0; gen < 1; ++gen)
+  for(int gen = 0; gen < numGens; ++gen)
   {
     cout << "STARTING GENERATION " << gen << endl;
     
@@ -839,6 +840,7 @@ Population *biped_resource(char *outputDir, const char *genes, const int numGens
     cout << "Population size (before epoch): " << popState->pop->organisms.size() << endl;
     popState->pop->epoch(gen);
     cout << "Population size (after epoch): " << popState->pop->organisms.size() << endl;
+    cout << endl << endl;
   }
   
   /*// Print average fitness
