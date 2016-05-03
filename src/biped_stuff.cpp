@@ -762,6 +762,7 @@ void evolvability_biped(Organism* org,char* fn,int* di,double* ev,bool recall) {
 }
 
 Population *biped_alps(char* output_dir, const char *genes, int gens, bool novelty) {
+  // TODO: NO LONGER EVALUATES INITIAL POPULATION
   population_state* p_state = create_biped_popstate(output_dir,genes,gens,novelty);
     
   alps k(5,20,p_state->pop->start_genome,p_state,biped_success_processing,output_dir);
@@ -777,6 +778,7 @@ Population *biped_generational(char* outputdir,const char *genes, int gens,bool 
   sprintf(logname,"%s_log.txt",outputdir);
   logfile=new ofstream(logname);
 
+  // TODO: NO LONGER EVALUATES INITIAL POPULATION
   population_state* p_state = create_biped_popstate(outputdir, genes, gens, novelty);
   for(int gen = 0; gen <= maxgens; gen++)  { //WAS 1000
     cout << "Generation " << gen << endl;
@@ -795,14 +797,28 @@ Population *biped_resource(char *outputDir, const char *genes, const int numGens
   sprintf(logName, "%s/log.txt", outputDir);
   logfile = new ofstream(logName);
   
+  // Create initial population
   population_state *popState = create_biped_popstate(outputDir, genes, numGens, false);
+  
+  // Evaluate initial population
+  cout << "Evaluating initial population..." << endl;
+  popState->pop->set_evaluator(&biped_evaluate);
+  popState->pop->evaluate_all();
+  cout << "Evaluated initial population" << endl;
+  
   for(int gen = 0; gen < numGens; ++gen)
   {
-    cout << "STARTING GENERATION " << gen << endl;
+    //cout << "STARTING GENERATION " << gen << endl;
     // biped epoch
     // population epoch (reproduction without evaluation)
     // evaluation
   }
+  
+  // Calculate average fitness
+  double totalFitness = 0.0;
+  for(Organism * const &orgPtr : popState->pop->organisms)
+    totalFitness += orgPtr->fitness;
+  cout << "Average fitness: " << totalFitness/popState->pop->organisms.size() << endl;
   
   // Delete log file pointer
   delete logfile;
@@ -811,6 +827,7 @@ Population *biped_resource(char *outputDir, const char *genes, const int numGens
   return popState->pop;
 }
 
+// TODO: This no longer evaluates the initial population; find calls and make necessary adjustments
 population_state* create_biped_popstate(char* outputdir, const char *genes, int gens, bool novelty) {
   maxgens = gens;
   
@@ -850,12 +867,6 @@ population_state* create_biped_popstate(char* outputdir, const char *genes, int 
   cout << "Verifying spawned population..." << endl;
   pop->verify();
   cout << "Verified spawned population" << endl;
-
-  // Set evaluator and evaluate initial population
-  cout << "Evaluating initial population..." << endl;
-  pop->set_evaluator(&biped_evaluate);
-  pop->evaluate_all();
-  cout << "Evaluated initial population" << endl;
   
   return new population_state(pop, novelty, archive);
   //pop->set_compatibility(&behavioral_compatibility);
