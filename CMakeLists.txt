@@ -1,4 +1,4 @@
-project(biped-evolve)
+project(biped-evolve-resource)
 
 cmake_minimum_required(VERSION 2.8.4)
 
@@ -14,9 +14,9 @@ include_directories(${INCLUDE_DIR})
 file(GLOB INCLUDES ${INCLUDE_DIR}/*.h)
 
 # Glob all source files
-set(SRC_DIR ${biped-evolve_SOURCE_DIR}/src)
+set(SRC_DIR ${biped-evolve-resource_SOURCE_DIR}/src)
 file(GLOB SOURCES ${SRC_DIR}/*.cpp)
 
 # Create executable
-add_executable(biped-evolve ${SOURCES} ${INCLUDES})
-target_link_libraries(biped-evolve ode drawstuff ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})
+add_executable(biped-evolve-resource ${SOURCES} ${INCLUDES})
+target_link_libraries(biped-evolve-resource ode drawstuff ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})
