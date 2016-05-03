@@ -17,6 +17,7 @@ Organism::Organism(double fit, Genome *g,int gen, const char* md) {
   expected_offspring=0;
   generation=gen;
   eliminate=false;
+  starved = false;
   error=0;
   winner=false;
   champion=false;
@@ -64,6 +65,7 @@ Organism::Organism(const Organism& org,bool copy_data)
   expected_offspring = org.expected_offspring;
   generation = org.generation;
   eliminate = org.eliminate;
+  starved = org.starved;
   error = org.error;
   winner = org.winner;
   champion = org.champion;

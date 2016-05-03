@@ -16,6 +16,8 @@
 #include "calc_evol.h"
 #include "graph.h"
 
+#include "resource_map.h"
+
 static vector<float> best_fits;
 static plot front_plot;
 static plot fitness_plot;
@@ -268,7 +270,7 @@ void update_behavior(vector<float> &k, Creature* c,bool good=true,float time=0.0
   }
 }
 
-dReal evaluate_controller(Controller* controller, noveltyitem* ni,  data_record *record, bool log)
+dReal evaluate_controller(Controller* controller, bool &died, noveltyitem* ni,  data_record *record, bool log)
 {
   // Create the ODE world
   create_world(controller, log);
@@ -291,9 +293,9 @@ dReal evaluate_controller(Controller* controller, noveltyitem* ni,  data_record 
   }
   const dReal fitness = creatures[0]->fitness();
   if(creatures[0]->abort())
-    cout << "CREATURE DIED WITH FITNESS " << fitness << endl;
+    cout << "Creature fell with fitness " << fitness << endl;
   else
-    cout << "CREATURE TIMED OUT WITH FITNESS " << fitness << endl;
+    cout << "Creature timed out with fitness " << fitness << endl;
   
   const int time = timestep;
 
@@ -317,11 +319,16 @@ dReal evaluate_controller(Controller* controller, noveltyitem* ni,  data_record 
     ni->novelty_scale = 1.0;
     ni->data.push_back(k);
   }
+  
+  // Try to eat from the ending location
+  dVector3 com;
+  creatures[0]->CenterOfMass(com);
+  // TODO: Subtract com from the original com?
+  cout << "Attempting to consume from (" << com[0] << ", " << com[1] << ")..." << endl;
+  const bool enoughFood = ResourceMap::getInstance().consume(com[0], com[1]);
 
   if(record != NULL)
   {
-    dVector3 com;
-    creatures[0]->CenterOfMass(com);
     record->ToRec[0] = fitness;
     record->ToRec[1] = com[0];
     record->ToRec[2] = com[1];
@@ -330,6 +337,9 @@ dReal evaluate_controller(Controller* controller, noveltyitem* ni,  data_record 
   }
 
   destroy_world();
+  
+  if(!enoughFood)
+    died = true;
   
   return fitness;
 }
@@ -341,8 +351,14 @@ noveltyitem* biped_evaluate(NEAT::Organism *org, data_record *data)
   new_item->phenotype = new Network(*org->net);
 
   CTRNNController *cont = new CTRNNController(org->net, org->gnome);
-  new_item->fitness = evaluate_controller(cont, new_item, data, true);
+  bool died = false;
+  new_item->fitness = evaluate_controller(cont, died, new_item, data, true);
   org->fitness = new_item->fitness;
+  
+  // Did organism starve?
+  if(died)
+    org->starved = true;
+  
   new_item->secondary = 0;
   //if (new_item->fitness < 2.5) new_item->viable=false;
   //else new_item->viable=true;
@@ -800,25 +816,39 @@ Population *biped_resource(char *outputDir, const char *genes, const int numGens
   // Create initial population
   population_state *popState = create_biped_popstate(outputDir, genes, numGens, false);
   
+  // Set biped evaluator
+  popState->pop->set_evaluator(&biped_evaluate);
+    
   // Evaluate initial population
   cout << "Evaluating initial population..." << endl;
-  popState->pop->set_evaluator(&biped_evaluate);
   popState->pop->evaluate_all();
   cout << "Evaluated initial population" << endl;
   
-  for(int gen = 0; gen < numGens; ++gen)
+  // Perform experiment for all generations
+  for(int gen = 0; gen < 1; ++gen)
   {
-    //cout << "STARTING GENERATION " << gen << endl;
-    // biped epoch
-    // population epoch (reproduction without evaluation)
-    // evaluation
+    cout << "STARTING GENERATION " << gen << endl;
+    
+    // Reset resource map
+    ResourceMap::getInstance().reset();
+    
+    // Biped epoch (mostly printing/logging)
+    const bool win = biped_generational_epoch(popState, gen);
+    
+    // Population epoch (reproduction AND evaluation...?)
+    cout << "Population size (before epoch): " << popState->pop->organisms.size() << endl;
+    popState->pop->epoch(gen);
+    cout << "Population size (after epoch): " << popState->pop->organisms.size() << endl;
   }
   
-  // Calculate average fitness
+  /*// Print average fitness
   double totalFitness = 0.0;
   for(Organism * const &orgPtr : popState->pop->organisms)
-    totalFitness += orgPtr->fitness;
-  cout << "Average fitness: " << totalFitness/popState->pop->organisms.size() << endl;
+    totalFitness += orgPtr->orig_fitness;
+  cout << "Average fitness: " << totalFitness/popState->pop->organisms.size() << endl;*/
+  
+  /*// Print number of species
+  cout << "Number of species: " << popState->pop->species.size() << endl;*/
   
   // Delete log file pointer
   delete logfile;
@@ -876,12 +906,10 @@ int biped_success_processing(population_state* pstate) {
   double& best_fitness = pstate->best_fitness;
   double& best_secondary = pstate->best_secondary;
 
-  vector<Organism*>::iterator curorg;
   Population* pop = pstate->pop;
   //Evaluate each organism on a test
-  int indiv_counter=0;
-  for (curorg=(pop->organisms).begin(); curorg!=(pop->organisms).end(); ++curorg) {
-    if ((*curorg)->noveltypoint->fitness > best_fitness)
+  for(auto curorg = pop->organisms.begin(); curorg != pop->organisms.end(); ++curorg) {
+    if((*curorg)->noveltypoint->fitness > best_fitness)
     {
       best_fitness = (*curorg)->noveltypoint->fitness;
       cout << "NEW BEST: " << best_fitness << endl;
@@ -891,27 +919,26 @@ int biped_success_processing(population_state* pstate) {
       //(*curorg)->print_to_file(filename);
     }
 
-    indiv_counter++;
     if ((*curorg)->noveltypoint->viable && !pstate->mc_met)
-      pstate->mc_met=true;
-    else if (pstate->novelty && !(*curorg)->noveltypoint->viable && minimal_criteria && pstate->mc_met)
+      pstate->mc_met = true;
+    else if(pstate->novelty && !(*curorg)->noveltypoint->viable && minimal_criteria && pstate->mc_met)
     {
-      destroy_organism((*curorg));
+      destroy_organism(*curorg);
     }
 
     if (!pstate->novelty)
       (*curorg)->fitness = (*curorg)->noveltypoint->fitness;
   }
-
-  if(logfile!=NULL)
+  
+  // If we're logging...
+  if(logfile != NULL)
     (*logfile) << pstate->generation*NEAT::pop_size<< " " << best_fitness << " " << best_secondary << endl;
-  //(*logfile) << best_fitness << " " << best_secondary << endl;
   return 0;
 }
 
 //int biped_generational_epoch(Population **pop2,int generation,data_rec& Record, noveltyarchive& archive, bool novelty) {
-int biped_generational_epoch(population_state* p, int gen) {
-  return generalized_generational_epoch(p,gen,&biped_success_processing); 
+int biped_generational_epoch(population_state *p, int gen) {
+  return generalized_generational_epoch(p, gen, &biped_success_processing); 
 }
 /*
 Population* pop= *pop2;

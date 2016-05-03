@@ -2988,7 +2988,6 @@ Genome *Genome::mate_singlepoint(Genome *g,int genomeid) {
 }
 
 double Genome::compatibility(Genome *g) {
-
   //iterators for moving through the two potential parents' Genes
   std::vector<Gene*>::iterator p1gene;
   std::vector<Gene*>::iterator p2gene;  

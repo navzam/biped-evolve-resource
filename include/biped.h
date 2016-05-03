@@ -43,7 +43,7 @@ int biped_success_processing(population_state* pstate);
 
 
 noveltyitem* biped_evaluate(NEAT::Organism* org,data_record* data=NULL);
-dReal evaluate_controller(Controller* controller,noveltyitem* ni=NULL,data_record* record=NULL,bool log=false);
+dReal evaluate_controller(Controller* controller, bool &died, noveltyitem* ni=NULL,data_record* record=NULL,bool log=false);
 
 void simulationStep(const bool bMoviePlay = false);
 

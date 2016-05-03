@@ -661,22 +661,21 @@ float maze_novelty_metric(noveltyitem* x,noveltyitem* y)
       generalized_generational_epoch(pstate,generation,&classifier_success_processing);
   }
 
-  int generalized_generational_epoch(population_state* pstate,int generation,successfunc success_processing) {
+  int generalized_generational_epoch(population_state *pstate, int generation, successfunc success_processing) {
     pstate->generation++;
 
-    bool novelty = pstate->novelty;
     noveltyarchive& archive = *pstate->archive;
     data_rec& Record = pstate->Record;
     Population **pop2 = &pstate->pop;
     Population* pop= *pop2;
     vector<Organism*>::iterator curorg,deadorg;
-    vector<Species*>::iterator curspecies;
     vector<Organism*>& measure_pop=pstate->measure_pop;
     
     cout << "Number of genomes: " << Genome::increment_count(0) << endl;
     cout << "Number of genes: " << Gene::increment_count(0) << endl;
     cout << "Archive size: " << archive.get_set_size() << endl;
 
+    const bool novelty = pstate->novelty;
     if (NEAT::multiobjective) {  //merge and filter population	
       if(!novelty) NEAT::fitness_multiobjective=true;
       //if using alps-style aging
@@ -712,13 +711,12 @@ float maze_novelty_metric(noveltyitem* x,noveltyitem* y)
     if (NEAT::evolvabilitytest)
       std::cout << "evol test still used...!!!!!!" << std::endl;
 
-    int ret = success_processing(pstate);
+    const int ret = success_processing(pstate);
     if(ret != 0)
       return 1;
 
-    if (novelty)
+    if(novelty)
     {
-
       archive.evaluate_population(pop,true);
       archive.evaluate_population(pop,false);
 
@@ -812,24 +810,25 @@ float maze_novelty_metric(noveltyitem* x,noveltyitem* y)
       pop->print_distribution(fn);
     }
     
-    // For every species, ompute average and max fitnesses
-    for (curspecies=(pop->species).begin(); curspecies!=(pop->species).end(); ++curspecies) {
+    // For every species, compute average and max fitnesses
+    for(auto curspecies = pop->species.begin(); curspecies != pop->species.end(); ++curspecies) {
       (*curspecies)->compute_average_fitness();
       (*curspecies)->compute_max_fitness();
     }
 
-    // Write out stuff after a chunk of generations
-    if ((generation+1)%NEAT::print_every == 0 )
+    // Write out stuff after 'print_every' generations
+    if((generation + 1) % NEAT::print_every == 0)
     {
-      char filename[100];
-      sprintf(filename,"%s_record.dat",output_dir);
+      //char filename[100];
+      //sprintf(filename,"%s/log_record.dat",output_dir);
       char fname[100];
-      sprintf(fname,"%s_archive.dat",output_dir);
+      sprintf(fname, "%s/log_archive.dat", output_dir);
       archive.Serialize(fname);
-      sprintf(fname,"%sgen_%d",output_dir,generation);
+      
+      sprintf(fname, "%s/gen_%d", output_dir, generation);
       pop->print_to_file_by_species(fname);
         
-      sprintf(fname,"%sfittest_%d",output_dir,generation);
+      sprintf(fname, "%s/fittest_%d", output_dir, generation);
       archive.serialize_fittest(fname);
     }
 

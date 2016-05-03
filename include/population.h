@@ -66,7 +66,10 @@ namespace NEAT {
     void print_divtotal();
     void gather_objectives(vector<float>* x,vector<float> *y,vector<float>* z);
     void evaluate_all() { 
-      for (std::vector<Organism*>::iterator iter = organisms.begin(); iter != organisms.end(); ++iter) evaluate_organism(*iter);
+      for (std::vector<Organism*>::iterator iter = organisms.begin(); iter != organisms.end(); ++iter)
+      {
+        evaluate_organism(*iter);
+      }
     }
     void evaluate_organism(Organism* org);
    

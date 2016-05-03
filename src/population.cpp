@@ -1273,9 +1273,12 @@ bool Population::epoch(int generation) {
 
   //Kill off all Organisms marked for death.  The remainder
   //will be allowed to reproduce.
+  int numKilled = 0;
   curorg=organisms.begin();
   while(curorg!=organisms.end()) {
-    if (((*curorg)->eliminate)) {
+    //if (((*curorg)->eliminate)) {
+    if((*curorg)->starved) {
+      ++numKilled;
       //Remove the organism from its Species
       ((*curorg)->species)->remove_org(*curorg);
 
@@ -1297,6 +1300,8 @@ bool Population::epoch(int generation) {
     }
 
   }
+  
+  cout << "KILLED " << numKilled << " ORGANISMS" << endl;
 
   //cout<<"Reproducing"<<endl;
 

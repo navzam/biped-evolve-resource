@@ -36,6 +36,7 @@ namespace NEAT {
     int age;
     int generation;  //Tells which generation this Organism is from
     bool eliminate;  //Marker for destruction of inferior Organisms
+    bool starved; // Marker for Organisms that failed to get enough food
     bool champion; //Marks the species champ
     int super_champ_offspring;  //Number of reserved offspring for a population leader
     bool pop_champ;  //Marks the best in population
