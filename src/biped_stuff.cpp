@@ -900,7 +900,7 @@ int biped_success_processing(population_state* pstate) {
 
 //int biped_generational_epoch(Population **pop2,int generation,data_rec& Record, noveltyarchive& archive, bool novelty) {
 int biped_generational_epoch(population_state* p, int gen) {
-  generalized_generational_epoch(p,gen,&biped_success_processing); 
+  return generalized_generational_epoch(p,gen,&biped_success_processing); 
 }
 /*
 Population* pop= *pop2;
