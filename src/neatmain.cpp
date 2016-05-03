@@ -134,7 +134,8 @@ int main(int argc, char **argv) {
   cout<<"loaded"<<endl;
 
   cout << "Start genes: " << startgenes << endl;
-  cout << "Generations: " << generations << endl; 
+  cout << "Generations: " << generations << endl;
+  
   set_age_objective(age_objective.getValue()); 
   if(age_objective.getValue() || alpsmode.getValue()) {
     NEAT::fresh_genetic_prob=0.05;
@@ -164,7 +165,7 @@ int main(int argc, char **argv) {
   //p = classifier_generational(filename,mazename,param,startgenes,generations,noveltySwitch.getValue());
   //exit(0);
 
-  if(!generationalSwitch.getValue())
+  /*if(!generationalSwitch.getValue())
   {
     p = biped_novelty_realtime(filename,param,startgenes,noveltySwitch.getValue());
   }
@@ -175,7 +176,10 @@ int main(int argc, char **argv) {
   else
   {
     p = biped_generational(filename, startgenes, generations, noveltySwitch.getValue());
-  }
+  }*/
+  
+  p = biped_resource(filename, startgenes, generations);
+  
   //HeapProfilerStop();
 
   return(0);
