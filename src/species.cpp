@@ -366,7 +366,7 @@ Organism *Species::reproduce_one(int generation, Population *pop,std::vector<Spe
   //Check for a mistake
   if ((organisms.size()==0)) {
     //    cout<<"ERROR:  ATTEMPT TO REPRODUCE OUT OF EMPTY SPECIES"<<endl;
-    return false;
+    return NULL;
   }
 
   rank(); //Make sure organisms are ordered by rank
