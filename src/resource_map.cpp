@@ -14,7 +14,7 @@ ResourceMap::ResourceMap()
 
 // Removes food from the point's sector and its 8 surrounding sectors
 // Returns whether there was enough food
-bool ResourceMap::consume(const double x, const double y, const int amt)
+bool ResourceMap::consume(const double x, const double y)
 {
   const int sliceNum = coordToSlice(x, y);
   const int sectorNum = coordToSector(x, y);

@@ -17,7 +17,7 @@ public:
   
   // Consumes food from a sector and surrounding sectors
   // Returns whether or not enough food was available
-  bool consume(const double x, const double y, const int amt);
+  bool consume(const double x, const double y);
   void reset();
   
 private:
