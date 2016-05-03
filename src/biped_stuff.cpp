@@ -286,8 +286,8 @@ dReal evaluate_controller(Controller* controller, noveltyitem* ni,  data_record 
       update_behavior(k, creatures[0]);
     }
     
-    if(log && timestep % 100 == 0)
-      cout << creatures[0]->fitness() << endl;
+    //if(log && timestep % 100 == 0)
+      //cout << "Time " << timestep << ": " << creatures[0]->fitness() << endl;
   }
   const dReal fitness = creatures[0]->fitness();
   if(creatures[0]->abort())
