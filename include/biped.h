@@ -25,6 +25,7 @@ void initialize_biped(const char* nefile);
 float walker_novelty_metric(noveltyitem* x,noveltyitem* y);
 
 Population *biped_generational(char* outputdir,const char *genes, int gens,bool novelty);
+Population *biped_resource(char *outputDir, const char *genes, const int numGens);
 //int biped_generational_epoch(Population **pop2,int generation,data_rec& Record, noveltyarchive& archive, bool novelty);
 int biped_generational_epoch(population_state* p, int gen);
 

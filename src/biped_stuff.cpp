@@ -788,6 +788,29 @@ Population *biped_generational(char* outputdir,const char *genes, int gens,bool 
 
 }
 
+Population *biped_resource(char *outputDir, const char *genes, const int numGens)
+{
+  // Create log file in output directory
+  char logName[100];
+  sprintf(logName, "%s/log.txt", outputDir);
+  logfile = new ofstream(logName);
+  
+  population_state *popState = create_biped_popstate(outputDir, genes, numGens, false);
+  for(int gen = 0; gen < numGens; ++gen)
+  {
+    cout << "STARTING GENERATION " << gen << endl;
+    // biped epoch
+    // population epoch (reproduction without evaluation)
+    // evaluation
+  }
+  
+  // Delete log file pointer
+  delete logfile;
+  
+  // Return final population
+  return popState->pop;
+}
+
 population_state* create_biped_popstate(char* outputdir, const char *genes, int gens, bool novelty) {
   maxgens = gens;
   
