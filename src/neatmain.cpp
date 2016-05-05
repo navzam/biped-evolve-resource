@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
   ValueArg<string> settings("s","settings","Settings file",false,"maze.ne","string");
   cmd.add(settings);
  
-  ValueArg<string> output("o","output","Output directory",false,"./results","string");
+  ValueArg<string> output("o","output","Output directory",false,"results","string");
   cmd.add(output);
 
   ValueArg<string> seed_genome("c","seed","Seed Genome",false,"","string");
