@@ -671,9 +671,9 @@ float maze_novelty_metric(noveltyitem* x,noveltyitem* y)
     vector<Organism*>::iterator curorg,deadorg;
     vector<Organism*>& measure_pop=pstate->measure_pop;
     
-    cout << "Number of genomes: " << Genome::increment_count(0) << endl;
-    cout << "Number of genes: " << Gene::increment_count(0) << endl;
-    cout << "Archive size: " << archive.get_set_size() << endl;
+    //cout << "Number of genomes: " << Genome::increment_count(0) << endl;
+    //cout << "Number of genes: " << Gene::increment_count(0) << endl;
+    //cout << "Archive size: " << archive.get_set_size() << endl;
 
     const bool novelty = pstate->novelty;
     if (NEAT::multiobjective) {  //merge and filter population	
