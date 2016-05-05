@@ -107,7 +107,7 @@ void Organism::update_phenotype() {
   modified = true;
 }
 
-bool Organism::print_to_file(char *filename) {
+bool Organism::print_to_file(const char *filename) {
   
   std::ofstream oFile(filename);
   
