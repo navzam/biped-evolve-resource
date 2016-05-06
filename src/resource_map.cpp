@@ -4,8 +4,9 @@
 
 const int ResourceMap::FOOD_FACTOR;
 const int ResourceMap::NUM_SLICES;
-const double ResourceMap::RADS_PER_SLICE = 2 * M_PI / NUM_SLICES;
 const double ResourceMap::SECTOR_LENGTH = 0.5;
+const int ResourceMap::SECTOR_CLUMP;
+const double ResourceMap::RADS_PER_SLICE = 2 * M_PI / NUM_SLICES;
 
 ResourceMap::ResourceMap()
 {
@@ -53,7 +54,9 @@ void ResourceMap::reset()
     int food = 0;
     for(int sect = 0; sect < rMap[slice].size(); ++sect)
     {
-      food += FOOD_FACTOR;
+      // If this is a new sector clump, add food
+      if(sect % SECTOR_CLUMP == 0)
+        food += FOOD_FACTOR;
       rMap[slice][sect] = food;
     }
   }
@@ -66,7 +69,9 @@ bool ResourceMap::removeFood(const int sliceNum, const int sectorNum, const int 
   // Fill in missing sectors with food
   while(rMap[sliceNum].size() <= sectorNum)
   {
-    const int food = (rMap[sliceNum].size() + 1) * FOOD_FACTOR;
+    // Account for sector clumps
+    const int currSect = rMap[sliceNum].size();
+    const int food = ((currSect / SECTOR_CLUMP) + 1) * FOOD_FACTOR;
     rMap[sliceNum].push_back(food);
   }
   
