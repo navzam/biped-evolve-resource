@@ -31,7 +31,7 @@ private:
   static const int NUM_SLICES = 90; // Number of slices per circle
   static const double SECTOR_LENGTH; // Distance before next sector
   static const int SECTOR_CLUMP = 2; // Number of consecutive sectors with same amount of food
-  static const double RADS_PER_SLICE;
+  static const double RADS_PER_SLICE; // Angle (in radians) covered by each slice
   
   std::vector<int> rMap[NUM_SLICES];
 };
