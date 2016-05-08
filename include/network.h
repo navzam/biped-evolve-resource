@@ -134,7 +134,7 @@ namespace NEAT {
     int max_depth();
 
     bool is_rec_helper(NNode* curnode, NNode* find_node,std::vector<NNode*> &seenlist);
-    bool is_recur2(NNode *potin_node,NNode *potout_node,int &count, int thresh);
+    bool is_recur2(NNode *potin_node,NNode *potout_node);
   };
 
 } // namespace NEAT

@@ -715,15 +715,14 @@ bool Network::is_recur(NNode *potin_node,NNode *potout_node,int &count,int thres
   }
 }
 
-bool Network::is_recur2(NNode *potin_node,NNode *potout_node,int &count, int thresh) {
-  NNode* curnode;
+bool Network::is_recur2(NNode *potin_node,NNode *potout_node) {
+  // Start at out node, if we find a path that lands at in_node, then this link will be recurrent
   std::vector<NNode*> seenlist;  //List of nodes not to doublecount
-  curnode=potin_node; //start at out node, if we find a path that lands at in_node, then this link will be recurrent
-  seenlist.push_back(curnode);
-  return is_rec_helper(curnode,potout_node,seenlist);
+  seenlist.push_back(potin_node);
+  return is_rec_helper(potin_node, potout_node, seenlist);
 }
 
-bool Network::is_rec_helper(NNode* curnode, NNode* find_node,std::vector<NNode*> &seenlist)
+bool Network::is_rec_helper(NNode *curnode, NNode *find_node, std::vector<NNode*> &seenlist)
 {
   std::vector<Link*> innodes=curnode->incoming;
   std::vector<Link*>::iterator curlink;
