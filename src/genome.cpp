@@ -1705,7 +1705,7 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
         trycount++;
       else {
         count=0;
-        recurflag=phenotype->is_recur(nodep1->analogue,nodep2->analogue,count,thresh);
+        recurflag=phenotype->is_recur2(nodep1->analogue,nodep2->analogue);
 
         //ADDED: CONSIDER connections out of outputs recurrent
         if (((nodep1->type)==OUTPUT)||
@@ -1771,7 +1771,7 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
       else {
 
         count=0;
-        recurflag=phenotype->is_recur(nodep1->analogue,nodep2->analogue,count,thresh);
+        recurflag=phenotype->is_recur2(nodep1->analogue,nodep2->analogue);
 
         //ADDED: CONSIDER connections out of outputs recurrent
         if (((nodep1->type)==OUTPUT)||
