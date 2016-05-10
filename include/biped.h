@@ -126,14 +126,20 @@ public:
 class Creature
 {
 public:
+  struct Location
+  {
+    dReal pos[3];
+    dReal rot[12];
+  };
+  
   bool movie_rec;
-  bool movie_play;
+  //bool movie_play;
 
-  ofstream* movie;
-  ofstream* movie_rot;
+  //ofstream* movie;
+  //ofstream* movie_rot;
 
-  ifstream* movie_in;
-  ifstream* movie_rot_in;
+  //ifstream* movie_in;
+  //ifstream* movie_rot_in;
 
   Controller* controller;
   vector<dGeomID> geoms;
@@ -153,17 +159,19 @@ public:
 
   vector<dReal> p_terms;
   vector<dReal> d_terms;
+  
+  vector< vector<Location> > locations;
 
   dWorldID world;
   dSpaceID space;
   dVector3 pos;
 
   Creature(bool mov=false,bool play=false) {
-    if (play)
-      mov=false;
-    movie_play=play;
-    movie_rec=mov;
-    if (play)
+    //if (play)
+      //mov=false;
+    //movie_play=play;
+    movie_rec = mov;
+    /*if (play)
     {
       movie_in=new ifstream("movie_pos.dat");
       movie_rot_in=new ifstream("movie_rot.dat");
@@ -172,7 +180,7 @@ public:
     {
       movie=new ofstream("movie_pos.dat");
       movie_rot=new ofstream("movie_rot.dat");
-    }
+    }*/
 
   }
 
@@ -181,19 +189,31 @@ public:
     // If recording, record positions and rotations
     if(movie_rec)
     {
+      vector<Location> currLocs;
+      // Go through all geoms
       for(int x = 0; x < geoms.size(); ++x)
       {
-        dQuaternion rot;
+        struct Location loc;
+        
+        // Get position and rotation
         const dReal *pos = dGeomGetPosition(geoms[x]);
-        dGeomGetQuaternion(geoms[x], rot);
-        *movie << pos[0] << " " << pos[1] << " " << pos[2] << " ";
-        *movie_rot << rot[0] << " " << rot[1] << " " << rot[2] << " " << rot[3] << " ";
+        const dReal *rot = dGeomGetRotation(geoms[x]);
+        for(int i = 0; i < 3; ++i)
+          loc.pos[i] = pos[i];
+        for(int i = 0; i < 12; ++i)
+          loc.rot[i] = rot[i];
+        
+        // Store this location
+        currLocs.push_back(loc);
+        
+        //*movie << pos[0] << " " << pos[1] << " " << pos[2] << " ";
+        //*movie_rot << rot[0] << " " << rot[1] << " " << rot[2] << " " << rot[3] << " ";
       }
-      *movie << endl;
-      *movie_rot << endl;
+      
+      this->locations.push_back(currLocs);
     }
     
-    // If playing, set positions and rotations
+    /*// If playing, set positions and rotations
     if(movie_play)
     {
       for(int k = 0; k < geoms.size(); ++k)
@@ -205,7 +225,7 @@ public:
         dGeomSetPosition(geoms[k], x, y, z);
         dGeomSetQuaternion(geoms[k], q);
       }
-    }
+    }*/
   }
 
   dReal TotalMass()
@@ -373,15 +393,15 @@ public:
 
     if (movie_rec)
     {
-      delete movie;
-      delete movie_rot;
+      //delete movie;
+      //delete movie_rot;
       //cout << "terminating.." << endl;
     }
-    if (movie_play)
+    /*if (movie_play)
     {
       delete movie_in;
       delete movie_rot_in;
-    }
+    }*/
 
   }
 };
@@ -660,8 +680,8 @@ public:
     }
 
     Creature::Update(timestep);
-    if (movie_play)
-      return;
+    /*if (movie_play)
+      return;*/
     dReal old_angles[10];
 
     step++;

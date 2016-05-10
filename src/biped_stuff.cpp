@@ -35,8 +35,6 @@ dReal MAXTORQUE_HIPMAJOR= 5.0;
 dReal P_CONSTANT=9.0;
 dReal D_CONSTANT=0.0;
 
-static ofstream *logfile;
-
 int novelty_function = NF_COGSAMPSQ;
 vector<dGeomID> geoms;
 vector<Creature*> creatures;
@@ -292,10 +290,8 @@ dReal evaluate_controller(Controller* controller, bool &died, noveltyitem* ni,  
       //cout << "Time " << timestep << ": " << creatures[0]->fitness() << endl;
   }
   const dReal fitness = creatures[0]->fitness();
-  /*if(creatures[0]->abort())
-    cout << "Creature fell with fitness " << fitness << endl;
-  else
-    cout << "Creature timed out with fitness " << fitness << endl;*/
+  if(!creatures[0]->abort())
+    cout << "Creature timed out with fitness " << fitness << endl;
   
   const int time = timestep;
 
@@ -310,9 +306,10 @@ dReal evaluate_controller(Controller* controller, bool &died, noveltyitem* ni,  
   {
     update_behavior(k, creatures[0], true, (float)time / (float)simtime);
   }
-
-  ((Biped*)creatures[0])->lft.push_back(timestep);
-  ((Biped*)creatures[0])->rft.push_back(timestep);
+  
+  Biped *biped = (Biped *)creatures[0];
+  biped->lft.push_back(timestep);
+  biped->rft.push_back(timestep);
   if(ni != NULL)
   {
     //ni->time=time;
@@ -323,9 +320,7 @@ dReal evaluate_controller(Controller* controller, bool &died, noveltyitem* ni,  
   // Try to eat from the ending location
   dVector3 com;
   creatures[0]->CenterOfMass(com);
-  // TODO: Subtract com from the original com?
-  //cout << "Attempting to consume from (" << com[0] << ", " << com[1] << ")..." << endl;
-  const bool enoughFood = ResourceMap::getInstance().consume(com[0], com[1]);
+  const bool enoughFood = ResourceMap::getInstance().consume(com[0] - biped->orig_com[0], com[1] - biped->orig_com[1]);
 
   if(record != NULL)
   {
@@ -334,6 +329,29 @@ dReal evaluate_controller(Controller* controller, bool &died, noveltyitem* ni,  
     record->ToRec[2] = com[1];
     record->ToRec[3] = com[2];
     record->ToRec[4] = timestep;
+  }
+  
+  // If the biped is good, save its recording to a file
+  static double bestSaved = 0.0;
+  if(log && fitness > bestSaved)
+  {
+    stringstream fName;
+    fName << "best_biped_" << ((int)(fitness * 10000));
+    ofstream outFile(fName.str());
+    for(const std::vector<Creature::Location> &bodyLocs : biped->locations)
+    {
+      for(const Creature::Location &loc : bodyLocs)
+      {
+        for(int i = 0; i < 3; ++i)
+          outFile << loc.pos[i] << " ";
+        for(int i = 0; i < 12; ++i)
+          outFile << loc.rot[i] << " ";
+      }
+      outFile << endl;
+    }
+    outFile.close();
+    
+    bestSaved = fitness;
   }
 
   destroy_world();
@@ -790,28 +808,56 @@ static int push_back_size = 20;
 
 Population *biped_generational(char* outputdir,const char *genes, int gens,bool novelty)
 {
+  // TODO: logfile is local now; need to log stuff
   char logname[100];
   sprintf(logname,"%s_log.txt",outputdir);
-  logfile=new ofstream(logname);
+  ofstream logFile(logname);
 
   // TODO: NO LONGER EVALUATES INITIAL POPULATION
+  // Create initial population
   population_state* p_state = create_biped_popstate(outputdir, genes, gens, novelty);
+  
+  // Set biped evaluator
+  p_state->pop->set_evaluator(&biped_evaluate);
+  
+  // Evaluate initial population
+  cout << "Evaluating initial population..." << endl;
+  p_state->pop->evaluate_all();
+  cout << "Evaluated initial population" << endl;
+  cout << endl << endl;
+  
+  // TODO: Log initial population's stats too
+  
+  // Perform experiment for all generations
   for(int gen = 0; gen <= maxgens; gen++)  { //WAS 1000
     cout << "Generation " << gen << endl;
-    const bool win = biped_generational_epoch(p_state,gen);
+    const bool win = biped_generational_epoch(p_state, gen);
     p_state->pop->epoch(gen);
+    
+    // Calculate average fitness
+    double totalFitness = 0.0;
+    for(Organism *org : p_state->pop->organisms)
+      totalFitness += org->fitness;
+    const double avgFitness = totalFitness / p_state->pop->organisms.size();
+    
+    // Log to console
+    cout << "Best fitness: " << p_state->best_fitness << endl;
+    cout << "Average fitness: " << avgFitness << endl;
+    cout << endl << endl;
+    
+    // Log to file: generation number, population size, best fitness, average fitness
+    logFile << gen << " " << p_state->pop->organisms.size() << " " << p_state->best_fitness << " " << avgFitness << endl;
   }
-  delete logfile;
+  
   return p_state->pop;
-
 }
 
 Population *biped_resource(char *outputDir, const char *genes, const int numGens)
 {
   // Create log file in output directory
   char logName[100];
-  sprintf(logName, "%s/log.txt", outputDir);
-  logfile = new ofstream(logName);
+  sprintf(logName, "%s_fitness_log.txt", outputDir);
+  ofstream logFile(logName);
   
   // Create initial population
   population_state *popState = create_biped_popstate(outputDir, genes, numGens, false);
@@ -825,8 +871,12 @@ Population *biped_resource(char *outputDir, const char *genes, const int numGens
   cout << "Evaluated initial population" << endl;
   cout << endl << endl;
   
+  // TODO: Log initial population's stats too
+  
   // Perform experiment for all generations
-  for(int gen = 0; gen < numGens; ++gen)
+  long numEvaled = 0;
+  int gen = 0;
+  while(numEvaled <= numGens * 500)
   {
     cout << "STARTING GENERATION " << gen << endl;
     
@@ -840,20 +890,44 @@ Population *biped_resource(char *outputDir, const char *genes, const int numGens
     cout << "Population size (before epoch): " << popState->pop->organisms.size() << endl;
     popState->pop->epoch(gen);
     cout << "Population size (after epoch): " << popState->pop->organisms.size() << endl;
+    numEvaled += popState->pop->organisms.size();
+        
+    // Calculate generation's fitness stats
+    double totalFitness = 0.0;
+    double bestFitness = 0.0;
+    int bestFitnessIndex = -1;
+    for(int i = 0; i < popState->pop->organisms.size(); ++i)
+    {
+      const Organism *const org = popState->pop->organisms[i];
+      if(org->fitness > bestFitness)
+      {
+        bestFitness = org->fitness;
+        bestFitnessIndex = i;
+      }
+      //bestFitness = std::max(bestFitness, org->fitness);
+      totalFitness += org->fitness;
+    }
+    const double avgFitness = totalFitness / popState->pop->organisms.size();
+    
+    // Write fittest to file
+    /*std::stringstream fittestFileName;
+    fittestFileName << "fittest_" << gen;
+    popState->pop->organisms[bestFitnessIndex]->print_to_file(fittestFileName.str().c_str());*/
+    
+    // Log to console
+    cout << "Best fitness (all gens): " << popState->best_fitness << endl;
+    cout << "Best fitness (this gen): " << bestFitness << endl;
+    cout << "Average fitness: " << avgFitness << endl;
+    cout << "Number evaluated: " << numEvaled << endl;
+    //cout << "RESULTING RESOURCE MAP" << endl;
+    //ResourceMap::getInstance().printMap();
     cout << endl << endl;
+    
+    // Log to file: generation number, population size, best fitness, average fitness
+    logFile << gen << " " << popState->pop->organisms.size() << " " << popState->best_fitness << " " << avgFitness << endl;
+    
+    ++gen;
   }
-  
-  /*// Print average fitness
-  double totalFitness = 0.0;
-  for(Organism * const &orgPtr : popState->pop->organisms)
-    totalFitness += orgPtr->orig_fitness;
-  cout << "Average fitness: " << totalFitness/popState->pop->organisms.size() << endl;*/
-  
-  /*// Print number of species
-  cout << "Number of species: " << popState->pop->species.size() << endl;*/
-  
-  // Delete log file pointer
-  delete logfile;
   
   // Return final population
   return popState->pop;
@@ -933,8 +1007,8 @@ int biped_success_processing(population_state* pstate) {
   }
   
   // If we're logging...
-  if(logfile != NULL)
-    (*logfile) << pstate->generation*NEAT::pop_size<< " " << best_fitness << " " << best_secondary << endl;
+  //if(logfile != NULL)
+    //(*logfile) << pstate->generation*NEAT::pop_size<< " " << best_fitness << " " << best_secondary << endl;
   return 0;
 }
 
