@@ -70,7 +70,7 @@ namespace NEAT {
 
     //Perform mating and mutation to form next generation
     Organism *reproduce_simple(int generation, Population *pop);
-    bool reproduce(int generation, Population *pop,std::vector<Species*> &sorted_species);
+    std::vector<Organism *> reproduce(int generation, Population *pop,std::vector<Species*> &sorted_species, bool allowClone);
 
     // *** Real-time methods *** 
 

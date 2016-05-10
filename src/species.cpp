@@ -1038,16 +1038,19 @@ void Species::adjust_fitness() {
   num_parents=(int) floor((NEAT::survival_thresh*((double) organisms.size()))+1.0);
 	
   // TODO: NO LONGER DOING THIS; RESOURCES ARE THE NEW LIMITING FACTOR
+  // TODO: RE-ENABLING THIS BECAUSE IT HELPS BREED BETTER AGENTS
+  // TODO: DISABLING THIS AGAIN, BECAUSE THE FOOD SHOULD LIMIT ALREADY?
   //Mark for death those who are ranked too low to be parents
   curorg=organisms.begin();
   (*curorg)->champion=true;  //Mark the champ as such
   /*for(count=1;count<=num_parents;count++) {
     if (curorg!=organisms.end())
       ++curorg;
-  }
-  while(curorg!=organisms.end()) {
+  }*/
+  /*curorg = organisms.begin() + num_parents;
+  while(curorg != organisms.end()) {
     (*curorg)->eliminate=true;  //Mark for elimination
-    //std::std::cout<<"marked org # "<<(*curorg)->gnome->genome_id<<" fitness = "<<(*curorg)->fitness<<std::std::endl;
+    //std::cout << "Marked for elimination: org # "<< (*curorg)->gnome->genome_id << " with fitness " << (*curorg)->orig_fitness << std::endl;
     ++curorg;
   }*/
 
@@ -1119,7 +1122,7 @@ double Species::count_offspring(double skim) {
 
 }
 
-bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &sorted_species) {
+std::vector<Organism *> Species::reproduce(int generation, Population *pop,std::vector<Species*> &sorted_species, bool allowClone) {
   int count;
   std::vector<Organism*>::iterator curorg;
 
@@ -1150,7 +1153,7 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 
   bool found;  //When a Species is found
 
-  bool champ_done=false; //Flag the preservation of the champion  
+  bool champ_done=!allowClone; //Flag the preservation of the champion
 
   Organism *thechamp;
 
@@ -1174,17 +1177,16 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
   //for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
   //  total_fitness+=(*curorg)->fitness;
   //}
-
-	
+  
+  std::vector<Organism *> babies;
   //Check for a mistake
-  if ((expected_offspring>0)&&
-  (organisms.size()==0)) {
-    //    std::cout<<"ERROR:  ATTEMPT TO REPRODUCE OUT OF EMPTY SPECIES"<<std::endl;
-    return false;
+  if(organisms.size() == 0) {
+    std::cout << "ERROR: ATTEMPT TO REPRODUCE OUT OF EMPTY SPECIES" << std::endl;
+    return babies;
   }
 
   poolsize=organisms.size()-1;
-
+  
   thechamp=(*(organisms.begin()));
 
   //Create the designated number of offspring for the Species
@@ -1204,6 +1206,7 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 
     //If we have a super_champ (Population champion), finish off some special clones
     if (NEAT::elitism && (thechamp->super_champ_offspring) > 0) {
+      std::cout << "REPRODUCE: THIS SHOULDN'T HAPPEN (1)" << std::endl;
       mom=thechamp;
       new_genome=(mom->gnome)->duplicate(count);
 
@@ -1243,10 +1246,10 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
       thechamp->super_champ_offspring--;
     }
     //If we have a Species champion, just clone it 
-    else if ((!champ_done)&&
-    (expected_offspring>5)) {
-
+    else if (!champ_done && expected_offspring > 5) {
       mom=thechamp; //Mom is the champ
+      
+      std::cout << "CLONING MOM (FITNESS " << mom->orig_fitness << ")" << std::endl;
 
       new_genome=(mom->gnome)->duplicate(count);
 
@@ -1265,9 +1268,7 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
     }
     //First, decide whether to mate or mutate
     //If there is only one organism in the pool, then always mutate
-    else if ((randfloat()<NEAT::mutate_only_prob)||
-    poolsize== 0) {
-
+    else if(randfloat() < NEAT::mutate_only_prob || poolsize == 0) {
       //Choose the random parent
 
       //RANDOM PARENT CHOOSER
@@ -1354,7 +1355,6 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 
     //Otherwise we should mate 
     else {
-
       //Choose the random mom
       orgnum=randint(0,poolsize);
       curorg=organisms.begin();
@@ -1375,7 +1375,9 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
       ////Finished roulette
       //
 
-      mom=(*curorg);         
+      mom=(*curorg);
+      if(mom->starved)
+        cout << "OH NO, MOM STARVED" << endl;
 
       //Choose random dad
 
@@ -1403,9 +1405,10 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
         //
 
         dad=(*curorg);
+        if(dad->starved)
+          cout << "OH NO, DAD STARVED" << endl;
       }
       else {
-
         //Mate outside Species  
         randspecies=this;
 
@@ -1441,14 +1444,19 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
         //dad=(*curorg);            
 
         //New way: Make dad be a champ from the random species
+        // TODO: FIGURE OUT WHY SPECIES STILL CONTAINS STARVED ORGANISMS
+        // TODO: THIS IS A TEMPORARY WORKAROUND
+        // TODO: ACTUALLY, I THINK THE SPECIES JUST HAS NO ORGANISMS...
         dad=(*((randspecies->organisms).begin()));
+        if(dad->starved)
+          cout << "OH NO, DAD STARVED" << endl;
 
         outside=true;	
       }
 
       //Perform mating based on probabilities of differrent mating types
       if (randfloat()<NEAT::mate_multipoint_prob) { 
-        new_genome=(mom->gnome)->mate_multipoint(dad->gnome,count,mom->orig_fitness,dad->orig_fitness,outside);
+        new_genome = (mom->gnome)->mate_multipoint(dad->gnome, count, mom->orig_fitness, dad->orig_fitness, outside);
       }
       else if (randfloat()<(NEAT::mate_multipoint_avg_prob/(NEAT::mate_multipoint_avg_prob+NEAT::mate_singlepoint_prob))) {
         new_genome=(mom->gnome)->mate_multipoint_avg(dad->gnome,count,mom->orig_fitness,dad->orig_fitness,outside);
@@ -1526,7 +1534,10 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 
     //Add the baby to its proper Species
     //If it doesn't fit a Species, create a new one
-
+    
+    if(baby->starved)
+      cout << "BABY IS STARVED! IT DIDN'T EVEN GET A CHANCE!" << endl;
+    
     baby->mut_struct_baby=mut_struct_baby;
     baby->mate_baby=mate_baby;
 
@@ -1539,64 +1550,12 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
     } else {
       baby->age = mom->age+1;
     }
-
-    //TODO EVALUATE BABY
-    pop->evaluate_organism(baby);
-
-    curspecies=(pop->species).begin();
-    if (curspecies==(pop->species).end()){
-      //Create the first species
-      newspecies=new Species(++(pop->last_species),true);
-      (pop->species).push_back(newspecies);
-      newspecies->add_Organism(baby);  //Add the baby
-      baby->species=newspecies;  //Point the baby to its species
-    } 
-    else {
-      comporg=(*curspecies)->first();
-      found=false;
-      while((curspecies!=(pop->species).end())&&
-      (!found)) {	
-        if (comporg==0) {
-          //Keep searching for a matching species
-          ++curspecies;
-          if (curspecies!=(pop->species).end())
-          {
-            comporg=(*curspecies)->first();
-          }
-        }
-        else if (!NEAT::speciation||pop->compatibility(baby,comporg)<NEAT::compat_threshold) {
-          //Found compatible species, so add this organism to it
-          (*curspecies)->add_Organism(baby);
-          baby->species=(*curspecies);  //Point organism to its species
-          found=true;  //Note the search is over
-        }
-        else {
-          //Keep searching for a matching species
-          ++curspecies;
-          if (curspecies!=(pop->species).end())
-          {
-            comporg=(*curspecies)->first();
-          }
-        }
-      }
-
-      //If we didn't find a match, create a new species
-      if (found==false) {
-        newspecies=new Species(++(pop->last_species),true);
-        //std::std::cout<<"CREATING NEW SPECIES "<<pop->last_species<<std::std::endl;
-        (pop->species).push_back(newspecies);
-        newspecies->add_Organism(baby);  //Add the baby
-        baby->species=newspecies;  //Point baby to its species
-      }
-
-
-    } //end else 
-
+    
+    // Push baby to return vector
+    babies.push_back(baby);
   }
 
-
-
-  return true;
+  return babies;
 }
 
 bool NEAT::order_species(Species *x, Species *y) { 

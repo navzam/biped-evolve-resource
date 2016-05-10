@@ -354,9 +354,9 @@ void Population::print_avg_age() {
 
   }
   avgage = age/cnt;
-  double avgsize=gsize/cnt;
-  cout << "Avg age: " << mx << " " << age/cnt << endl;
-  cout << "Avg size: " << mgsize << " " << avgsize << endl;
+  //double avgsize=gsize/cnt;
+  //cout << "Avg age: " << mx << " " << age/cnt << endl;
+  //cout << "Avg size: " << mgsize << " " << avgsize << endl;
 }
 void Population::evaluate_organism(Organism* org) {
   data_record *newrec = new data_record();
@@ -982,8 +982,8 @@ bool Population::epoch(int generation) {
   (*curspecies)->obliterate=true;
   */
 
-  std::cout<<"Number of Species: "<<num_species<<std::endl;
-  std::cout<<"compat_thresh: "<<compat_threshold<<std::endl;
+  std::cout << "Number of species: " << num_species << std::endl;
+  //std::cout<<"compat_thresh: "<<compat_threshold<<std::endl;
 
   //Use Species' ages to modify the objective fitness of organisms
   // in other words, make it more fair for younger species
@@ -1271,38 +1271,58 @@ bool Population::epoch(int generation) {
   }
 
 
-  //Kill off all Organisms marked for death.  The remainder
-  //will be allowed to reproduce.
+  // Kill off all Organisms marked for death; the rest will be allowed to reproduce
   const int sizeBeforeKilling = organisms.size();
-  int numKilled = 0;
+  int numStarved = 0;
+  double totalFitnessStarved = 0.0;
+  double bestFitnessStarved = 0.0;
+  //int numEliminated = 0;
   curorg=organisms.begin();
   while(curorg!=organisms.end()) {
     //if (((*curorg)->eliminate)) {
     if((*curorg)->starved) {
-      ++numKilled;
+      ++numStarved;
+      totalFitnessStarved += (*curorg)->orig_fitness;
+      bestFitnessStarved = std::max(bestFitnessStarved, (*curorg)->orig_fitness);
+      /*if((*curorg)->starved)
+        ++numStarved;
+      else
+        ++numEliminated;*/
+      
       //Remove the organism from its Species
       ((*curorg)->species)->remove_org(*curorg);
 
       //Delete the organism from memory
       delete (*curorg);
-
-      //Remember where we are
-      deadorg=curorg;
-      ++curorg;
-
-      //iter2 =  v.erase(iter); 
-
-      //Remove the organism from the master list
-      curorg=organisms.erase(deadorg);
+      
+      curorg = organisms.erase(curorg);
 
     }
     else {
       ++curorg;
     }
-
   }
   
-  cout << "KILLED " << numKilled << " ORGANISMS (" << (100.0 * numKilled / sizeBeforeKilling) << "\%)" << endl;
+  cout << "STARVED " << numStarved << " ORGANISMS (" << (100.0 * numStarved / sizeBeforeKilling) << "\%)" << endl;
+  cout << "BEST STARVED: " << bestFitnessStarved << endl;
+  cout << "AVG STARVED: " << totalFitnessStarved / numStarved << endl;
+  //cout << "ELIMINATED " << numEliminated << " ORGANISMS (" << (100.0 * numEliminated / sizeBeforeKilling) << "\%)" << endl;
+  
+  // Remove any species that have become empty after killings
+  for(auto specIt = species.begin(); specIt != species.end(); ) {
+    if((*specIt)->organisms.empty()) {
+      delete (*specIt);
+      specIt = species.erase(specIt);
+    }
+    else {
+      ++specIt;
+    }
+  }
+  
+  // Recreate sorted species
+  // TODO: Only do this if needed (maybe if the sizes don't match)
+  sorted_species = species;
+  std::sort(sorted_species.begin(), sorted_species.end(), order_species);
 
   //cout<<"Reproducing"<<endl;
 
@@ -1320,29 +1340,106 @@ bool Population::epoch(int generation) {
 
   //}
   
-  // Reproduce
-  curspecies=species.begin();
-  int last_id=(*curspecies)->id;
-  while(curspecies!=species.end()) {
-    (*curspecies)->reproduce(generation,this,sorted_species);
-
-    //Set the current species to the id of the last species checked
-    //(the iterator must be reset because there were possibly vector insertions during reproduce)
-    std::vector<Species*>::iterator curspecies2=species.begin();
-    while(curspecies2!=species.end()) {
-      if (((*curspecies2)->id)==last_id)
-        curspecies=curspecies2;
-      curspecies2++;
-    }
-      
-    //Move to the next on the list
-    curspecies++;
-	  
-    //Record where we are
-    if (curspecies!=species.end())
-      last_id=(*curspecies)->id;
-
+  // Reproduce all species
+  std::vector<Organism *> newBabies;
+  //int last_id=(*curspecies)->id;
+  for(auto currSpecies = species.begin(); currSpecies != species.end(); ++currSpecies) {    
+    // Current species makes babies
+    std::vector<Organism *> babies = (*currSpecies)->reproduce(generation,this,sorted_species,true);
+    
+    // Add these babies to the overall babies list
+    newBabies.insert(newBabies.end(), babies.begin(), babies.end());
   }
+  
+  // Continue reproducing until we reach goal populations
+  //const int initialSize = sizeBeforeKilling - numKilled;
+  const int goalSize = 2 * (sizeBeforeKilling - numStarved);
+  cout << "Goal size: " << goalSize << endl;
+  while(newBabies.size() < goalSize)
+  {
+    // Choose random organism
+    const int randOrg = randint(0, organisms.size() - 1);
+    if(organisms[randOrg]->starved)
+      std::cout << "EVEN THIS RANDOM ORG IS STARVING?" << endl;
+    
+    // Reproduce its species
+    std::vector<Organism *> babies = organisms[randOrg]->species->reproduce(generation, this, sorted_species, false);
+    
+    // Add these babies to the overall babies list
+    newBabies.insert(newBabies.end(), babies.begin(), babies.end());    
+  }
+  cout << "New size: " << newBabies.size() << endl;
+  
+  // Evaluate and assign new babies to species
+  for(Organism *baby : newBabies)
+  {
+    evaluate_organism(baby);
+    
+    auto currSpecies = species.begin();
+    if(currSpecies == species.end())
+    {
+      // Create the first species
+      Species *newSpecies = new Species(++last_species, true);
+      newSpecies->add_Organism(baby); // Add baby to species
+      baby->species = newSpecies; // Point baby to its own species
+      species.push_back(newSpecies);
+    }
+    else
+    {
+      Organism *compOrg = (*currSpecies)->first();
+      bool found = false;
+      while(currSpecies != species.end() && !found)
+      {
+        if(compOrg == NULL)
+        {
+          // Keep searching for matching species
+          ++currSpecies;
+          if(currSpecies != species.end())
+            compOrg = (*currSpecies)->first();
+        }
+        else if(!NEAT::speciation || this->compatibility(baby, compOrg) < NEAT::compat_threshold)
+        {
+          // Found compatible species, so add baby to it
+          (*currSpecies)->add_Organism(baby);
+          baby->species = (*currSpecies);
+          found = true;
+        }
+        else
+        {
+          // Keep searching for matching species
+          ++currSpecies;
+          if(currSpecies != species.end())
+            compOrg = (*currSpecies)->first();
+        }
+      }
+      if(!found)
+      {
+        Species *newSpecies = new Species(++last_species, true);
+        newSpecies->add_Organism(baby); // Add baby to species
+        baby->species = newSpecies; // Point baby to its own species
+        species.push_back(newSpecies);
+      }
+    }
+  }
+    
+    
+
+  /*//Set the current species to the id of the last species checked
+  //(the iterator must be reset because there were possibly vector insertions during reproduce)
+  std::vector<Species*>::iterator curspecies2=species.begin();
+  while(curspecies2!=species.end()) {
+    if (((*curspecies2)->id)==last_id)
+      curspecies=curspecies2;
+    curspecies2++;
+  }
+    
+  //Move to the next on the list
+  curspecies++;
+  
+  //Record where we are
+  if (curspecies!=species.end())
+    last_id=(*curspecies)->id;*/
+
   
   //cout<<"Reproduction Complete"<<endl;
 
@@ -1370,6 +1467,11 @@ bool Population::epoch(int generation) {
 
     //std::cout<<"nnext org # "<<(*curorg)->gnome->genome_id<<std::endl;
 
+  }
+  if(organisms.size() != 0)
+  {
+    cout << "WRONG!! ORGANISMS SHOULD BE EMPTY NOW!" << endl;
+    exit(0);
   }
 
   //Remove all empty Species and age ones that survive
