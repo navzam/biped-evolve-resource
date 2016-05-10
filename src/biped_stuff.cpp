@@ -370,7 +370,7 @@ noveltyitem* biped_evaluate(NEAT::Organism *org, data_record *data)
 
   CTRNNController *cont = new CTRNNController(org->net, org->gnome);
   bool died = false;
-  new_item->fitness = evaluate_controller(cont, died, new_item, data, true);
+  new_item->fitness = evaluate_controller(cont, died, new_item, data); // ADD TRUE HERE TO ENABLE BIPED LOGGING
   org->fitness = new_item->fitness;
   
   // Did organism starve?
