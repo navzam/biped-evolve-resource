@@ -1,10 +1,11 @@
 #include "resource_map.h"
 
 #include <math.h>
+#include <iostream>
 
 const int ResourceMap::FOOD_FACTOR;
 const int ResourceMap::NUM_SLICES;
-const double ResourceMap::SECTOR_LENGTH = 0.5;
+const double ResourceMap::SECTOR_LENGTH = 0.05;
 const int ResourceMap::SECTOR_CLUMP;
 const double ResourceMap::RADS_PER_SLICE = 2 * M_PI / NUM_SLICES;
 
@@ -99,4 +100,17 @@ int ResourceMap::coordToSector(const double x, const double y)
   const double dist = sqrt(x * x + y * y);
   
   return dist / SECTOR_LENGTH;
+}
+
+void ResourceMap::printMap() const
+{
+  for(int slice = 0; slice < NUM_SLICES; ++slice)
+  {
+    std::cout << "SLICE #" << slice << ": ";
+    for(int sect = 0; sect < rMap[slice].size(); ++sect)
+    {
+      std::cout << rMap[slice][sect] << " ";
+    }
+    std::cout << std::endl;
+  }
 }
